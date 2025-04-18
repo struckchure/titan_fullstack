@@ -10,6 +10,7 @@ interface RegexSubmissionPayload {
 }
 
 export function RealTimeRegexValidator() {
+  const [debounceDuration, setDebounceDuration] = useState<number>(500);
   const [payload, setPayload] = useState<RegexSubmissionPayload>({
     input: "",
     regex: "",
@@ -21,7 +22,7 @@ export function RealTimeRegexValidator() {
     }
   };
 
-  const debouncedSendRequest = _.debounce(sendRequest, 1_500);
+  const debouncedSendRequest = _.debounce(sendRequest, debounceDuration);
 
   useEffect(() => {
     debouncedSendRequest();
@@ -41,6 +42,12 @@ export function RealTimeRegexValidator() {
         placeholder="Regex Pattern"
         value={payload.regex}
         onChange={(e) => setPayload({ ...payload, regex: e.target.value })}
+      />
+      <input
+        className="!w-26"
+        type="number"
+        value={debounceDuration}
+        onChange={(e) => setDebounceDuration(Number(e.target.value))}
       />
     </div>
   );
