@@ -5,7 +5,6 @@ WORKDIR /app
 COPY . .
 
 RUN yarn
-RUN npx prisma generate
 RUN yarn build
 
 EXPOSE 3000
