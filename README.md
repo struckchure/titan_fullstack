@@ -17,7 +17,7 @@ The backend is built with NestJS, a progressive Node.js framework for building e
 ### Tech Stack
 
 - NestJS (TypeScript-based Node.js framework)
-- Prisma (ORM)
+- Mongoose (@nestjs/mongoose + mongoose)
 - MongoDB (Database)
 - WebSocket integration
 
