@@ -53,10 +53,10 @@ export function useRealtimeJobs(limit: number) {
     socket.on(VALIDATE_REGEX_RESPONSE, (data: Job) => {
       // find existing jobs and update the state
       setJobs((prev) => {
-        const existingJobIdx = prev.findIndex((j) => j.id === data.id);
+        const existingJobIdx = prev.findIndex((j) => j._id === data._id);
         if (existingJobIdx >= 0) {
           return prev
-            .map((job) => (job.id === data.id ? data : job))
+            .map((job) => (job._id === data._id ? data : job))
             .slice(0, limit);
         }
 

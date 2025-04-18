@@ -1,7 +1,5 @@
-import { BASE_API_URL } from "../env";
-
 export interface Job {
-  id: string;
+  _id: string;
   createdAt: Date;
   updatedAt: Date;
   input: string;
@@ -17,7 +15,7 @@ export interface ListJobsDto {
 
 export async function listJobs(dto: ListJobsDto): Promise<Job[]> {
   const res = await fetch(
-    `${BASE_API_URL}/jobs?${new URLSearchParams(dto as Record<string, string>)}`
+    `/api/jobs?${new URLSearchParams(dto as Record<string, string>)}`
   );
 
   if (!res.ok) {

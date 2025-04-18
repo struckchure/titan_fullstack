@@ -33,7 +33,7 @@ export function JobList(props: { items: Job[] }) {
           ) : (
             props.items.map((job) => (
               <tr
-                key={job.id}
+                key={job._id}
                 className="bg-gray-700 aria-[invalid]:bg-red-900 aria-[valid]:bg-green-900"
                 aria-invalid={job.status === "Invalid" ? true : undefined}
                 aria-valid={job.status === "Valid" ? true : undefined}
