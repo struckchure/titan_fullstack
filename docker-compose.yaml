@@ -3,23 +3,27 @@ name: titan
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
-    ports:
-      - 2181:2181
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: nc -z localhost 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: always
 
   broker:
     image: confluentinc/cp-server:7.4.0
     depends_on:
-      - zookeeper
-    ports:
-      - 9092:9092
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092
       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -31,16 +35,55 @@ services:
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: "true"
       CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
+    restart: always
 
   redis:
     image: redis:alpine
-    ports:
-      - 6379:6379
+    healthcheck:
+      test: redis-cli ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: always
 
   mongodb:
-    image: mongo:8.0-noble
-    command: ["mongod", "--replSet", "rs0"]
+    image: mongo:7.0
+    environment:
+      - MONGO_REPLICA_SET_NAME=rs0
+    healthcheck:
+      test: |
+        mongosh --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }] }).ok }"
+      interval: 10s
+      start_period: 30s
+    command: ["--bind_ip_all", "--replSet", "rs0"]
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+      broker:
+        condition: service_started # TODO: check if kafka is ready to accept connections
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env
     ports:
-      - 27017:27017
-    volumes:
-      - ./init-replica-set.js:/docker-entrypoint-initdb.d/init-replica-set.js
+      - 8000:80
+    depends_on:
+      - backend
+    restart: always
