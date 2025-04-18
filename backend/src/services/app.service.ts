@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-// import { Job, JobStatus } from 'generated/prisma';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { REGEX_VALIDATION_TOPIC, VALIDATE_REGEX_RESPONSE } from 'src/constants';
@@ -55,7 +54,7 @@ export class AppService implements OnModuleInit {
   }
 
   async validateRegex(dto: ValidateRegexDto) {
-    const job = await new this.jobModel({ data: dto }).save();
+    const job = await this.jobModel.create(dto);
 
     await this.producerService.produce({
       topic: REGEX_VALIDATION_TOPIC,

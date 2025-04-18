@@ -1,6 +1,6 @@
 import { Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kafka, Partitioners } from 'kafkajs';
+import { Kafka, logLevel, Partitioners } from 'kafkajs';
 
 export const KAFKA_CONNECTION = 'KAFKA_CONNECTION_TOKEN';
 
@@ -9,7 +9,7 @@ export const KafkaProvider: Provider = {
   useFactory: (configService: ConfigService) => {
     const brokers = configService.get('KAFKA_BROKERS').split(' ');
 
-    return new Kafka({ brokers });
+    return new Kafka({ brokers, logLevel: logLevel.NOTHING });
   },
   inject: [ConfigService],
 };
