@@ -88,11 +88,3 @@ The project includes Docker configuration for easy deployment:
    ```bash
    docker-compose down
    ```
-
-## Development Guidelines
-
-### Code Style
-
-- Follow TypeScript best practices
-- Use ESLint and Prettier for code formatting
-- Write meaningful commit messages
