@@ -82,12 +82,14 @@ export class AppService implements OnModuleInit {
       error = e.message;
     }
 
-    const job = await this.jobModel
-      .findByIdAndUpdate(dto.id, {
+    const job = await this.jobModel.findByIdAndUpdate(
+      dto._id,
+      {
         status,
         error,
-      })
-      .exec();
+      },
+      { new: true },
+    );
 
     await this.redisService.publish(
       VALIDATE_REGEX_RESPONSE,
