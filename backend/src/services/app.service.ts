@@ -1,23 +1,25 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { Job, JobStatus } from 'generated/prisma';
+// import { Job, JobStatus } from 'generated/prisma';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { REGEX_VALIDATION_TOPIC, VALIDATE_REGEX_RESPONSE } from 'src/constants';
+import { Job, JobDocument, JobStatus } from 'src/schemas/job.schema';
 import { sleep } from 'src/utils';
 import { JobsListDto, ValidateRegexDto } from '../dto/app.dto';
 import { ConsumerService } from './consumer.service';
-import { PrismaService } from './prisma.service';
 import { ProducerService } from './producer.service';
 import { RedisService } from './redis.service';
 
 @Injectable()
 export class AppService implements OnModuleInit {
   constructor(
-    private readonly prismaService: PrismaService,
     private readonly producerService: ProducerService,
     private readonly consumerService: ConsumerService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
+    @InjectModel(Job.name) private readonly jobModel: Model<Job>,
   ) {}
 
   async onModuleInit() {
@@ -35,15 +37,16 @@ export class AppService implements OnModuleInit {
     const skip = dto.skip ? +dto.skip : 0;
     const take = dto.limit ? +dto.limit : 10;
 
-    return await this.prismaService.job.findMany({
-      skip,
-      take,
-      orderBy: { createdAt: 'desc' },
-    });
+    return await this.jobModel
+      .find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(take)
+      .exec();
   }
 
   async getJob(id: string) {
-    const job = await this.prismaService.job.findUnique({ where: { id } });
+    const job = await this.jobModel.findById(id);
     if (!job) {
       throw new NotFoundException('job not found');
     }
@@ -52,7 +55,7 @@ export class AppService implements OnModuleInit {
   }
 
   async validateRegex(dto: ValidateRegexDto) {
-    const job = await this.prismaService.job.create({ data: dto });
+    const job = await new this.jobModel({ data: dto }).save();
 
     await this.producerService.produce({
       topic: REGEX_VALIDATION_TOPIC,
@@ -65,7 +68,7 @@ export class AppService implements OnModuleInit {
   async handleValidateRegex(payload: string) {
     await sleep(this.configService.get('PROCESSING_DELAY_MS'));
 
-    const dto: Job = JSON.parse(payload);
+    const dto: JobDocument = JSON.parse(payload);
 
     let status: JobStatus;
     let error: string | null = null;
@@ -80,10 +83,12 @@ export class AppService implements OnModuleInit {
       error = e.message;
     }
 
-    const job = await this.prismaService.job.update({
-      where: { id: dto.id },
-      data: { status, error },
-    });
+    const job = await this.jobModel
+      .findByIdAndUpdate(dto.id, {
+        status,
+        error,
+      })
+      .exec();
 
     await this.redisService.publish(
       VALIDATE_REGEX_RESPONSE,
