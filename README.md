@@ -82,6 +82,8 @@ The project includes Docker configuration for easy deployment:
    docker-compose up -d
    ```
 
+> The frontend is accessible on port `3000`
+
 2. Stop all services:
    ```bash
    docker-compose down
